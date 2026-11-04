@@ -3,7 +3,7 @@ import sys
 
 try:
     import tkinter as tk
-    from tkinter import scrolledtext
+    from tkinter import font as tkfont, ttk
 except ImportError:
     print("ERROR: tkinter is not available.")
     print("Please install it for your Python version:")
@@ -145,60 +145,216 @@ def process_input(input_str):
 
 
 def create_gui():
-    # Create main window
     root = tk.Tk()
     root.title("Telegram Expenses Parser")
     root.geometry("800x600")
 
-    # Create frame for instructions
-    instruction_frame = tk.Frame(root)
-    instruction_frame.pack(fill=tk.X, padx=10, pady=5)
+    colors = {
+        "background": "#F4F7FB",
+        "surface": "#FFFFFF",
+        "ink": "#182C48",
+        "muted": "#52647D",
+        "accent": "#2467DC",
+        "success": "#167347",
+        "border": "#DCE4EF",
+        "hover": "#EDF2F9",
+        "accent_hover": "#1D57BF",
+        "success_hover": "#115B38",
+        "error": "#A32837",
+    }
+    root.configure(background=colors["background"])
 
-    # Add instructions label
-    instructions = """Copy your telegram messages here"""
+    families = set(tkfont.families(root))
 
-    instruction_label = tk.Label(instruction_frame,
-                                 text=instructions,
-                                 justify=tk.LEFT,
-                                 anchor="w")
-    instruction_label.pack(fill=tk.X)
+    def choose_font(candidates, fallback):
+        return next(
+            (family for family in candidates if family in families),
+            tkfont.nametofont(fallback, root=root).actual("family"),
+        )
 
-    # Create frame for text areas
-    text_frame = tk.Frame(root)
-    text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    body_family = choose_font(
+        ("Segoe UI", "Helvetica Neue", "DejaVu Sans"), "TkDefaultFont"
+    )
+    display_family = choose_font(
+        ("Avenir Next", "Segoe UI", "DejaVu Sans"), "TkDefaultFont"
+    )
+    mono_family = choose_font(
+        ("Menlo", "Consolas", "DejaVu Sans Mono"), "TkFixedFont"
+    )
 
-    # Configure columns to be equal width
-    text_frame.columnconfigure(0, weight=1)
-    text_frame.columnconfigure(1, weight=1)
+    style = ttk.Style(root)
+    style.theme_use("clam")
+    style.configure(
+        ".", background=colors["background"], foreground=colors["ink"],
+        font=(body_family, 10),
+    )
+    style.configure("Card.TFrame", background=colors["surface"])
+    style.configure(
+        "Title.TLabel", font=(display_family, 22, "bold")
+    )
+    style.configure("Muted.TLabel", foreground=colors["muted"])
+    style.configure(
+        "PanelTitle.TLabel", background=colors["surface"],
+        font=(body_family, 12, "bold"),
+    )
+    style.configure(
+        "PanelHint.TLabel", background=colors["surface"],
+        foreground=colors["muted"],
+    )
+    style.configure("Error.TLabel", foreground=colors["error"])
+    style.configure(
+        "TButton", padding=(12, 10), font=(body_family, 10, "bold"),
+        background=colors["surface"], foreground=colors["ink"],
+        bordercolor=colors["border"], lightcolor=colors["surface"],
+        darkcolor=colors["surface"], focuscolor=colors["accent"],
+        borderwidth=1, relief="flat", width=0,
+    )
+    style.map(
+        "TButton",
+        background=[("pressed", colors["border"]), ("active", colors["hover"])],
+        bordercolor=[("focus", colors["accent"])],
+    )
+    for name, color, hover in (
+        ("Primary", colors["accent"], colors["accent_hover"]),
+        ("Success", colors["success"], colors["success_hover"]),
+    ):
+        style.configure(
+            f"{name}.TButton", background=color, foreground=colors["surface"],
+            bordercolor=color, lightcolor=color, darkcolor=color,
+            focuscolor=colors["surface"],
+        )
+        style.map(
+            f"{name}.TButton",
+            background=[("pressed", hover), ("active", hover)],
+            bordercolor=[("focus", colors["ink"]), ("!focus", color)],
+        )
+    style.configure(
+        "Editor.Vertical.TScrollbar", background=colors["border"],
+        troughcolor=colors["surface"], borderwidth=0,
+        lightcolor=colors["border"], darkcolor=colors["border"],
+        bordercolor=colors["border"], arrowsize=12, gripcount=0,
+    )
+    style.layout("Editor.Vertical.TScrollbar", [
+        ("Vertical.Scrollbar.trough", {"sticky": "ns", "children": [
+            ("Vertical.Scrollbar.thumb", {"sticky": "nswe"}),
+        ]}),
+    ])
+    style.map(
+        "Editor.Vertical.TScrollbar",
+        background=[("active", colors["muted"])],
+    )
 
-    # Input area
-    input_label = tk.Label(text_frame, text="Input (Paste Telegram text):")
-    input_label.grid(row=0, column=0, sticky=tk.W)
+    content = ttk.Frame(root, padding=24)
+    content.pack(fill=tk.BOTH, expand=True)
+    content.columnconfigure(0, weight=1)
+    content.rowconfigure(1, weight=1)
 
-    input_text = scrolledtext.ScrolledText(text_frame, wrap=tk.WORD)
-    input_text.grid(row=1, column=0, sticky=tk.NSEW, padx=(0, 5))
+    header = ttk.Frame(content)
+    header.grid(row=0, column=0, sticky=tk.EW, pady=(0, 20))
+    mark = tk.Canvas(
+        header, width=44, height=44, background=colors["background"],
+        highlightthickness=0,
+    )
+    mark.create_polygon(
+        5, 19, 39, 6, 28, 39, 21, 26, 13, 30, 15, 23,
+        fill=colors["accent"], outline="",
+    )
+    mark.create_line(
+        15, 23, 32, 13, fill=colors["surface"], width=2,
+        capstyle=tk.ROUND,
+    )
+    mark.pack(side=tk.LEFT, padx=(0, 12))
+    heading = ttk.Frame(header)
+    heading.pack(side=tk.LEFT)
+    ttk.Label(
+        heading, text="Telegram expenses", style="Title.TLabel"
+    ).pack(anchor=tk.W)
+    ttk.Label(
+        heading, text="Copy your Telegram messages below.", style="Muted.TLabel"
+    ).pack(anchor=tk.W, pady=(4, 0))
 
-    # Output area
-    output_label = tk.Label(text_frame, text="Output (Formatted text):")
-    output_label.grid(row=0, column=1, sticky=tk.W)
+    text_frame = ttk.Frame(content)
+    text_frame.grid(row=1, column=0, sticky=tk.NSEW)
+    text_frame.columnconfigure((0, 1), weight=1, uniform="editors")
+    text_frame.rowconfigure(0, weight=1)
 
-    output_text = scrolledtext.ScrolledText(text_frame, wrap=tk.WORD)
-    output_text.grid(row=1, column=1, sticky=tk.NSEW, padx=(5, 0))
+    def create_editor(column, title, hint, family):
+        card = tk.Frame(
+            text_frame, background=colors["surface"], borderwidth=0,
+            highlightthickness=1, highlightbackground=colors["border"],
+        )
+        card.grid(
+            row=0, column=column, sticky=tk.NSEW,
+            padx=(0, 8) if column == 0 else (8, 0),
+        )
+        card.columnconfigure(0, weight=1)
+        card.rowconfigure(1, weight=1)
+        labels = ttk.Frame(card, style="Card.TFrame", padding=(16, 16, 16, 8))
+        labels.grid(row=0, column=0, sticky=tk.EW)
+        ttk.Label(
+            labels, text=title, style="PanelTitle.TLabel"
+        ).pack(anchor=tk.W)
+        ttk.Label(
+            labels, text=hint, style="PanelHint.TLabel"
+        ).pack(anchor=tk.W, pady=(4, 0))
 
-    # Configure the row to expand
-    text_frame.rowconfigure(1, weight=1)
+        editor_frame = ttk.Frame(
+            card, style="Card.TFrame", padding=(14, 0, 14, 14)
+        )
+        editor_frame.grid(row=1, column=0, sticky=tk.NSEW)
+        editor_frame.columnconfigure(0, weight=1)
+        editor_frame.rowconfigure(0, weight=1)
+        editor = tk.Text(
+            editor_frame, wrap=tk.WORD, width=1, height=12,
+            font=(family, 11), background=colors["surface"],
+            foreground=colors["ink"], insertbackground=colors["accent"],
+            selectbackground=colors["accent"],
+            selectforeground=colors["surface"],
+            relief=tk.FLAT, borderwidth=0, highlightthickness=2,
+            highlightbackground=colors["surface"],
+            highlightcolor=colors["accent"], padx=8, pady=8,
+            spacing1=2, spacing3=3,
+        )
+        editor.grid(row=0, column=0, sticky=tk.NSEW)
+        scrollbar = ttk.Scrollbar(
+            editor_frame, orient=tk.VERTICAL, command=editor.yview,
+            style="Editor.Vertical.TScrollbar",
+        )
+        scrollbar.grid(row=0, column=1, sticky=tk.NS, padx=(6, 0))
+        editor.configure(yscrollcommand=scrollbar.set)
+        return editor
 
-    # Stats label
-    stats_label = tk.Label(root, text="Elaborated: 0 | Skipped: 0",
-                           anchor="w")
-    stats_label.pack(fill=tk.X, padx=10, pady=(5, 0))
+    input_text = create_editor(
+        0, "Telegram messages", "Input: paste your messages here", body_family
+    )
+    output_text = create_editor(
+        1, "Formatted expenses", "Output: ready for your spreadsheet", mono_family
+    )
 
-    # Create frame for buttons
-    button_frame = tk.Frame(root)
-    button_frame.pack(fill=tk.X, padx=10, pady=10)
+    footer = ttk.Frame(content)
+    footer.grid(row=2, column=0, sticky=tk.EW, pady=(16, 0))
+    status_frame = ttk.Frame(footer)
+    status_frame.pack(fill=tk.X)
+    stats_label = ttk.Label(
+        status_frame, text="Elaborated: 0 | Skipped: 0", style="Muted.TLabel"
+    )
+    stats_label.pack(side=tk.LEFT)
+    copy_status = ttk.Label(status_frame, style="Error.TLabel")
+    copy_status.pack(side=tk.RIGHT)
+    button_frame = ttk.Frame(footer)
+    button_frame.pack(fill=tk.X, pady=(12, 0))
+    copy_reset_id = None
 
-    # Function to process input
+    def reset_copy_feedback():
+        nonlocal copy_reset_id
+        if copy_reset_id is not None:
+            root.after_cancel(copy_reset_id)
+            copy_reset_id = None
+        copy_button.configure(text="Copy Output", style="TButton")
+        copy_status.configure(text="")
+
     def on_process():
+        reset_copy_feedback()
         input_content = input_text.get("1.0", tk.END)
         output_content, elaborated, skipped = process_input(input_content)
         output_text.delete("1.0", tk.END)
@@ -207,55 +363,70 @@ def create_gui():
             text=f"Elaborated: {elaborated} | Skipped: {skipped}"
         )
 
-    # Function to copy output to clipboard
     def on_copy():
+        nonlocal copy_reset_id
+        reset_copy_feedback()
         output_content = output_text.get("1.0", tk.END).strip()
-        pyperclip.copy(output_content)
+        try:
+            pyperclip.copy(output_content)
+        except (pyperclip.PyperclipException, OSError) as error:
+            print(f"ERROR: Could not copy output: {error}", file=sys.stderr)
+            copy_status.configure(
+                text="Could not copy. Check your clipboard setup."
+            )
+            return
+        copy_button.configure(text="\u2713 Copied", style="Success.TButton")
+        copy_reset_id = root.after(2000, reset_copy_feedback)
 
-    # Function to clear input
     def on_clear_input():
         input_text.delete("1.0", tk.END)
 
-    # Function to clear output
     def on_clear_output():
+        reset_copy_feedback()
         output_text.delete("1.0", tk.END)
 
-    # Function to reverse output order
     def on_reverse():
         content = output_text.get("1.0", tk.END).strip()
         if content:
+            reset_copy_feedback()
             lines = content.split('\n')
             lines.reverse()
             output_text.delete("1.0", tk.END)
             output_text.insert("1.0", '\n'.join(lines))
 
-    # Add buttons
-    process_button = tk.Button(button_frame,
-                               text="Process",
-                               command=on_process)
-    process_button.pack(side=tk.LEFT, padx=5)
+    process_button = ttk.Button(
+        button_frame, text="Process", command=on_process, style="Primary.TButton"
+    )
+    process_button.pack(side=tk.LEFT, padx=(0, 8))
+    copy_button = ttk.Button(
+        button_frame, text="Copy Output", command=on_copy, width=12
+    )
+    copy_button.pack(side=tk.LEFT, padx=(0, 8))
+    for text, command in (
+        ("Clear Input", on_clear_input),
+        ("Clear Output", on_clear_output),
+        ("Reverse Order", on_reverse),
+    ):
+        ttk.Button(
+            button_frame, text=text, command=command
+        ).pack(side=tk.LEFT, padx=(0, 8))
 
-    copy_button = tk.Button(button_frame,
-                            text="Copy Output",
-                            command=on_copy)
-    copy_button.pack(side=tk.LEFT, padx=5)
+    def on_output_modified(event):
+        if output_text.edit_modified():
+            reset_copy_feedback()
+            output_text.edit_modified(False)
 
-    clear_input_button = tk.Button(button_frame,
-                                   text="Clear Input",
-                                   command=on_clear_input)
-    clear_input_button.pack(side=tk.LEFT, padx=5)
+    def on_destroy(event):
+        nonlocal copy_reset_id
+        if event.widget is root and copy_reset_id is not None:
+            root.after_cancel(copy_reset_id)
+            copy_reset_id = None
 
-    clear_output_button = tk.Button(button_frame,
-                                    text="Clear Output",
-                                    command=on_clear_output)
-    clear_output_button.pack(side=tk.LEFT, padx=5)
-
-    reverse_button = tk.Button(button_frame,
-                               text="Reverse Order",
-                               command=on_reverse)
-    reverse_button.pack(side=tk.LEFT, padx=5)
-
-    # Start the GUI event loop
+    output_text.bind("<<Modified>>", on_output_modified)
+    root.bind("<Destroy>", on_destroy, add=True)
+    root.update_idletasks()
+    root.minsize(max(760, content.winfo_reqwidth()), 520)
+    input_text.focus_set()
     root.mainloop()
 
 
