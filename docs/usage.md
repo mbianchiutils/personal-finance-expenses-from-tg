@@ -16,6 +16,24 @@ also logged to stderr.
 **Reverse Order** reverses the output rows. **Clear Input** and **Clear Output**
 clear only their respective panes. Both panes remain editable and scrollable.
 
+## Messages without timestamps
+
+Repeated `Expenses:` headings and blank lines are supported:
+
+```text
+Expenses:
+14,25 Sample ride
+
+Expenses:
+9 Sample dinner (42 number for order)
+```
+
+Each expense starts with an amount followed by a description. Amounts can be
+whole numbers or use decimal commas or points; points become commas in the
+output. The headings and blank lines do not create output rows or count as
+skipped messages when included with expenses. Numbers inside descriptions stay
+in the description, so the second example has an amount of `9`, not `42`.
+
 ## Development checks
 
 With the virtual environment activated and Tkinter available:
