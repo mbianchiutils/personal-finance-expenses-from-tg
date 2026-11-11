@@ -26,6 +26,28 @@ class ParserTests(unittest.TestCase):
             ("Sample groceries\t\u20ac 12,50\nSample coffee\t\u20ac 3", 2, 0),
         )
 
+    def test_expenses_headers_and_numbers_in_descriptions(self):
+        self.assertEqual(
+            expenses.process_input(
+                "Expenses:\n14,25 Sample ride\n\n"
+                "Expenses:\n21,75 Sample ride\n\n"
+                "Expenses:\n18,50 Sample lunch\n\n"
+                "Expenses:\n11,05 Sample snacks\n\n"
+                "Expenses:\n34 Sample shirt\n\n"
+                "Expenses:\n9 Sample dinner (42 number for order)"
+            ),
+            (
+                "Sample ride\t\u20ac 14,25\n"
+                "Sample ride\t\u20ac 21,75\n"
+                "Sample lunch\t\u20ac 18,50\n"
+                "Sample snacks\t\u20ac 11,05\n"
+                "Sample shirt\t\u20ac 34\n"
+                "Sample dinner (42 number for order)\t\u20ac 9",
+                6,
+                0,
+            ),
+        )
+
     def test_telegram_messages(self):
         self.assertEqual(
             expenses.process_input(
@@ -100,12 +122,17 @@ class GuiTests(unittest.TestCase):
         )
 
     def test_processing_keeps_output_and_counts(self):
-        self.input_text.insert("1.0", "12.50 Sample groceries\n3 Sample coffee")
+        self.input_text.insert(
+            "1.0",
+            "Expenses:\n12,50 Sample groceries\n\n"
+            "Expenses:\n3 Sample coffee (42 number for order)",
+        )
         self.buttons["Process"].invoke()
         self.root.update()
         self.assertEqual(
             self.output_text.get("1.0", tk.END).strip(),
-            "Sample groceries\t\u20ac 12,50\nSample coffee\t\u20ac 3",
+            "Sample groceries\t\u20ac 12,50\n"
+            "Sample coffee (42 number for order)\t\u20ac 3",
         )
         self.assertIn("Elaborated: 2 | Skipped: 0", self.label_texts())
 
